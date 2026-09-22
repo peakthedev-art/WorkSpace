@@ -4,10 +4,10 @@ services:
 		container_name: workspace-mysql
 		restart: unless-stopped
 		environment:
-			MYSQL_ROOT_PASSWORD: root_password
-			MYSQL_DATABASE: workspace
-			MYSQL_USER: workspace
-			MYSQL_PASSWORD: workspace_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
 		ports:
 			- "3306:3306"
 		volumes:
@@ -20,3 +20,4 @@ services:
 
 volumes:
 	mysql_data:
+  commandes_sql
