@@ -1,12 +1,14 @@
 # WorkSpace
 WorkSpace 2026
 
-Dans le terminal, tapper ceci :
+Système RFID : gestion des badges, rôles, zones et accès, avec une base MySQL,
+une API Python, et une stack d'observabilité (Loki / Promtail / Grafana).
+
 ## Configuration Docker
 
 Copier le fichier d'environnement puis remplacer les mots de passe de démonstration :
 
-```
+```bash
 cp .env.example .env
 ```
 
@@ -26,11 +28,72 @@ Services disponibles :
 Les journaux Docker sont envoyés automatiquement à Loki par Promtail. La source
 de données Loki est provisionnée dans Grafana au démarrage.
 
+> Si Loki, Promtail ou Grafana ne sont pas encore configurés, leurs blocs
+> peuvent être commentés dans `db.yml` : seuls `mysql` et `api_python`
+> démarreront alors.
+
 Pour arrêter les services :
 
 ```bash
 docker compose --env-file .env -f db.yml down
 ```
+
+## Base de données
+
+Le schéma et le jeu de données de démonstration sont chargés automatiquement
+par MySQL au premier démarrage, via deux scripts montés dans
+`/docker-entrypoint-initdb.d/` :
+
+- `commandes.sql` : création des tables (`role`, `badge`, `user`, `zone`,
+  `habitation`, `zone_access`) et des contraintes de clés étrangères.
+- `test_donnees.sql` : jeu de données de test (rôles, zones, badges,
+  utilisateurs, droits d'accès).
+
+⚠️ Ces scripts ne s'exécutent **qu'une seule fois**, lorsque le volume
+`mysql_data` est créé. Toute modification de `commandes.sql` ou
+`test_donnees.sql` après un premier lancement nécessite de réinitialiser la
+base (voir ci-dessous) pour être prise en compte.
+
+### Vérifier que les données sont bien chargées
+
+```bash
+docker exec -it workspace-mysql mysql -u root -p
+```
+
+```sql
+SHOW DATABASES;
+USE <nom_de_la_base>;   -- valeur de MYSQL_DATABASE dans .env
+SHOW TABLES;
+SELECT * FROM role;
+SELECT * FROM zone;
+SELECT * FROM badge;
+SELECT * FROM user;
+SELECT * FROM zone_access;
+SELECT * FROM habitation;
+```
+
+Vérifier les droits d'accès par utilisateur (jointure complète) :
+
+```sql
+SELECT
+    u.name, u.surname, r.name AS role, z.name AS zone_autorisee
+FROM user u
+JOIN badge b ON u.badge_id = b.id
+JOIN role r ON b.role_id = r.id
+JOIN zone_access za ON za.role_id = r.id
+JOIN zone z ON za.zone_id = z.id
+ORDER BY u.surname, z.name;
+```
+
+### Réinitialiser la base en développement
+
+```bash
+docker compose --env-file .env -f db.yml down -v
+docker compose --env-file .env -f db.yml up -d --build
+```
+
+Le script SQL d'initialisation est exécuté uniquement lorsque le volume MySQL
+est créé pour la première fois.
 
 ## Lancement Python local
 
@@ -45,24 +108,7 @@ python3 -m pip install -r requirements.txt
 Pour lancer l'API en local, une base MySQL doit être accessible avec les
 variables `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` et `DB_NAME` :
 
-```
-source .venv/bin/activate
-uvicorn app.main:app --reload
-```
-
-Le script SQL d'initialisation est exécuté uniquement lorsque le volume MySQL
-est créé pour la première fois. Pour réinitialiser la base en développement :
-
 ```bash
-docker compose --env-file .env -f db.yml down -v
-```
-```
-
-
-
-Pour lancer Python en local :
-
-```
 source .venv/bin/activate
 uvicorn app.main:app --reload
 ```
