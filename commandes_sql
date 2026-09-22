@@ -6,10 +6,10 @@ CREATE TABLE role (
 
 CREATE TABLE badge (
     id UUID NOT NULL PRIMARY KEY,
-    date_activation DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    date_fin DATE NOT NULL,
-    role_id UUID NOT NULL,
-    FOREIGN KEY (role_id) REFERENCES role(id)
+    activation_date DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ending_date DATE NOT NULL,
+    id_role UUID NOT NULL,
+    FOREIGN KEY (id_role) REFERENCES role(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE
 );
@@ -19,7 +19,7 @@ CREATE TABLE user (
     name VARCHAR(255) NOT NULL,
     surname VARCHAR(255) NOT NULL,
     birthdate DATE NOT NULL,
-    sexe VARCHAR(255) NOT NULL,
+    sex VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     badge_id UUID NOT NULL,
     FOREIGN KEY (badge_id) REFERENCES badge(id)
@@ -27,12 +27,12 @@ CREATE TABLE user (
         ON UPDATE CASCADE
 );
 
-CREATE TABLE zone (
+CREATE TABLE location (
     id UUID NOT NULL PRIMARY KEY,
     name VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE habitation (
+CREATE TABLE home (
     id UUID NOT NULL PRIMARY KEY,
     owner_id UUID NOT NULL,
     FOREIGN KEY (owner_id) REFERENCES user(id)
@@ -46,7 +46,7 @@ CREATE TABLE zone_access (
     FOREIGN KEY (role_id) REFERENCES role(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
-    FOREIGN KEY (zone_id) REFERENCES zone(id)
+    FOREIGN KEY (zone_id) REFERENCES location(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE
 );
