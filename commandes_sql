@@ -1,48 +1,48 @@
 CREATE TABLE role (
-    id UUID NOT NULL PRIMARY KEY,
+    id CHAR(36) NOT NULL PRIMARY KEY,
     name VARCHAR(255) NOT NULL
 );
 
 
 CREATE TABLE badge (
-    id UUID NOT NULL PRIMARY KEY,
-    date_activation DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    date_activation DATE NOT NULL DEFAULT (CURRENT_DATE),
     date_fin DATE NOT NULL,
-    role_id UUID NOT NULL,
+    role_id CHAR(36) NOT NULL,
     FOREIGN KEY (role_id) REFERENCES role(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE
 );
 
-CREATE TABLE user (
-    id UUID NOT NULL PRIMARY KEY,
+CREATE TABLE `user` (
+    id CHAR(36) NOT NULL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     surname VARCHAR(255) NOT NULL,
     birthdate DATE NOT NULL,
     sexe VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
-    badge_id UUID NOT NULL,
+    badge_id CHAR(36) NOT NULL,
     FOREIGN KEY (badge_id) REFERENCES badge(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE
 );
 
 CREATE TABLE zone (
-    id UUID NOT NULL PRIMARY KEY,
+    id CHAR(36) NOT NULL PRIMARY KEY,
     name VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE habitation (
-    id UUID NOT NULL PRIMARY KEY,
-    owner_id UUID NOT NULL,
-    FOREIGN KEY (owner_id) REFERENCES user(id)
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    owner_id CHAR(36) NOT NULL,
+    FOREIGN KEY (owner_id) REFERENCES `user`(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE
 );
 
 CREATE TABLE zone_access (
-    role_id UUID NOT NULL,
-    zone_id UUID NOT NULL,
+    role_id CHAR(36) NOT NULL,
+    zone_id CHAR(36) NOT NULL,
     FOREIGN KEY (role_id) REFERENCES role(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
