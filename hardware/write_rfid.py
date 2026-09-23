@@ -2,8 +2,6 @@ from mfrc522 import MFRC522
 import RPi.GPIO as GPIO
 import time
 
-reader = MFRC522()
-
 KEY = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
 BLOCK = 4
 
@@ -17,18 +15,22 @@ for i, byte in enumerate(encoded):
 
 try:
     while True:
+        reader = MFRC522()
+
         print("Approche le badge...")
 
         status, tag_type = reader.MFRC522_Request(reader.PICC_REQIDL)
 
         if status != reader.MI_OK:
-            time.sleep(0.2)
+            GPIO.cleanup()
+            time.sleep(0.1)
             continue
 
         status, uid = reader.MFRC522_Anticoll()
 
         if status != reader.MI_OK:
-            time.sleep(0.2)
+            GPIO.cleanup()
+            time.sleep(0.1)
             continue
 
         print("Badge détecté !")
@@ -38,7 +40,8 @@ try:
 
         if status != reader.MI_OK:
             print("Impossible de sélectionner le badge")
-            time.sleep(1)
+            reader.MFRC522_StopCrypto1()
+            GPIO.cleanup()
             continue
 
         status = reader.MFRC522_Auth(
@@ -51,7 +54,7 @@ try:
         if status != reader.MI_OK:
             print("Échec de l'authentification")
             reader.MFRC522_StopCrypto1()
-            time.sleep(1)
+            GPIO.cleanup()
             continue
 
         status = reader.MFRC522_Write(BLOCK, data)
@@ -63,6 +66,7 @@ try:
 
         reader.MFRC522_StopCrypto1()
 
+        GPIO.cleanup()
         time.sleep(1)
 
 except KeyboardInterrupt:
