@@ -15,7 +15,7 @@ cp .env.example .env
 Lancer la base, l'API, Loki, Promtail et Grafana :
 
 ```bash
-docker compose --env-file .env -f db.yml up -d --build
+docker compose --env-file .env -f docker-compose.yml up -d --build
 ```
 
 Services disponibles :
@@ -35,7 +35,7 @@ de données Loki est provisionnée dans Grafana au démarrage.
 Pour arrêter les services :
 
 ```bash
-docker compose --env-file .env -f db.yml down
+docker compose --env-file .env -f docker-compose.yml
 ```
 
 ## Base de données
@@ -88,8 +88,8 @@ ORDER BY u.surname, z.name;
 ### Réinitialiser la base en développement
 
 ```bash
-docker compose --env-file .env -f db.yml down -v
-docker compose --env-file .env -f db.yml up -d --build
+docker compose --env-file .env -f docker-compose.yml down -v
+docker compose --env-file .env -f docker-compose.yml up -d --build
 ```
 
 Le script SQL d'initialisation est exécuté uniquement lorsque le volume MySQL
