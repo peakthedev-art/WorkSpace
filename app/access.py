@@ -1,3 +1,5 @@
+import logging
+from datetime import datetime, timezone
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -8,6 +10,7 @@ from app.database import get_db
 from app.schemas import BadgeResponse, RoleResponse, UserResponse, ZoneResponse
 
 router = APIRouter(tags=["Access control"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/access/check", response_model=bool)
@@ -16,10 +19,24 @@ def check_access(
     authorized_roles: List[str] = Query(
         ..., description="IDs des rôles autorisés dans la zone demandée"
     ),
+    zone: str | None = Query(None, description="Nom de la zone demandée"),
     db: Session = Depends(get_db),
 ):
     """Retourne true si le badge est valide et son rôle est autorisé."""
-    return is_access_allowed(db, badge_id, authorized_roles)
+    allowed = is_access_allowed(db, badge_id, authorized_roles)
+    logger.info(
+        "Access decision recorded",
+        extra={
+            "event": "access_decision",
+            "details": {
+                "badge_id": badge_id,
+                "zone": zone or "unknown",
+                "time": datetime.now(timezone.utc).strftime("%H:%M:%S"),
+                "authorized": allowed,
+            },
+        },
+    )
+    return allowed
 
 
 @router.get("/badge/{badge_id}", response_model=BadgeResponse)

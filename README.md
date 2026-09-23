@@ -6,11 +6,19 @@ une API Python, et une stack d'observabilité (Loki / Promtail / Grafana).
 
 ## Configuration Docker
 
-Copier le fichier d'environnement puis remplacer les mots de passe de démonstration :
+### Première installation
+
+Depuis la racine du projet, vérifier que Docker et Docker Compose sont
+installés, puis copier le fichier d'environnement :
 
 ```bash
 cp .env.example .env
 ```
+
+Modifier ensuite `.env` et remplacer au minimum les mots de passe de
+démonstration (`MYSQL_ROOT_PASSWORD`, `MYSQL_PASSWORD` et
+`GRAFANA_ADMIN_PASSWORD`). Les valeurs utilisées par l'API, MySQL et Grafana
+doivent rester cohérentes.
 
 Lancer la base, l'API, Loki, Promtail et Grafana :
 
@@ -18,19 +26,67 @@ Lancer la base, l'API, Loki, Promtail et Grafana :
 docker compose --env-file .env -f docker-compose.yml up -d --build
 ```
 
+Attendre que MySQL soit sain et vérifier l'état des services :
+
+```bash
+docker compose ps
+```
+
+Le service `workspace-mysql` doit afficher `healthy`. Les services
+`workspace-api`, `workspace-loki`, `workspace-promtail` et
+`workspace-grafana` doivent être démarrés.
+
+À cette étape, les scripts SQL sont exécutés automatiquement par MySQL :
+`jeux_de_donnees/commandes.sql` crée le schéma et
+`jeux_de_donnees/test_donnees.sql` insère les données de démonstration.
+
 Services disponibles :
 
 - API : http://localhost:8000
 - Documentation API : http://localhost:8000/docs
-- Grafana : http://localhost:3000
 - Loki : http://localhost:3100/ready
+- Grafana : http://localhost:3000
+- Dashboard RFID : http://localhost:3000/d/rfid-access/rfid-controle-des-acces
 
-Les journaux Docker sont envoyés automatiquement à Loki par Promtail. La source
-de données Loki est provisionnée dans Grafana au démarrage.
+Identifiants Grafana de développement : `GRAFANA_ADMIN_USER` et
+`GRAFANA_ADMIN_PASSWORD` définis dans `.env`.
 
-> Si Loki, Promtail ou Grafana ne sont pas encore configurés, leurs blocs
-> peuvent être commentés dans `db.yml` : seuls `mysql` et `api_python`
-> démarreront alors.
+Les logs de l'API sont écrits en JSON sur sa sortie standard. Promtail les
+détecte depuis les conteneurs Docker et les envoie à Loki, en exposant les
+labels `service`, `container`, `level` et `event`. Les événements
+`http_request` et `access_decision` peuvent ainsi être recherchés directement
+dans Loki. Grafana utilise automatiquement Loki comme source de données.
+
+### Dashboard Grafana
+
+Le dashboard `RFID - Controle des acces` est provisionné automatiquement avec
+la datasource Loki. Il contient :
+
+- les logs de l'API ;
+- les décisions d'accès ;
+- le nombre d'accès refusés et autorisés sur la période sélectionnée ;
+- l'activité des requêtes HTTP dans le temps.
+
+Ouvrir le lien du dashboard après la connexion Grafana. La période par défaut
+est `Last 24 hours` et les panneaux se rafraîchissent toutes les 10 secondes.
+
+### Initialiser les logs de test
+
+Les logs synthétiques ne sont pas chargés par MySQL. Après le démarrage de
+Loki, lancer séparément :
+
+```bash
+python3 jeux_de_donnees/generate_test_logs.py
+```
+
+Le script injecte 20 décisions d'accès réparties sur les dernières 24 heures,
+dont 15 refus et 5 autorisations. Il est possible de le relancer pour ajouter
+un nouveau jeu de logs.
+
+Les journaux Docker sont envoyés automatiquement à Loki par Promtail.
+
+> Si Loki, Promtail ou Grafana ne sont pas nécessaires temporairement, leurs
+> blocs peuvent être commentés dans `docker-compose.yml`.
 
 Pour arrêter les services :
 
@@ -44,15 +100,20 @@ Le schéma et le jeu de données de démonstration sont chargés automatiquement
 par MySQL au premier démarrage, via deux scripts montés dans
 `/docker-entrypoint-initdb.d/` :
 
-- `commandes.sql` : création des tables (`role`, `badge`, `user`, `zone`,
-  `habitation`, `zone_access`) et des contraintes de clés étrangères.
-- `test_donnees.sql` : jeu de données de test (rôles, zones, badges,
-  utilisateurs, droits d'accès).
+Les fichiers sont regroupés dans le dossier `jeux_de_donnees/` :
+
+- `jeux_de_donnees/commandes.sql` : création des tables (`role`, `badge`,
+    `user`, `zone`, `location`, `access_zone`) et des contraintes de clés
+    étrangères.
+- `jeux_de_donnees/test_donnees.sql` : jeu de données de test (rôles, zones,
+    badges, utilisateurs et droits d'accès).
+- `jeux_de_donnees/generate_test_logs.py` : génération de 20 événements de logs
+    synthétiques dans Loki.
 
 ⚠️ Ces scripts ne s'exécutent **qu'une seule fois**, lorsque le volume
-`mysql_data` est créé. Toute modification de `commandes.sql` ou
-`test_donnees.sql` après un premier lancement nécessite de réinitialiser la
-base (voir ci-dessous) pour être prise en compte.
+`mysql_data` est créé. Toute modification des fichiers SQL après un premier
+lancement nécessite de réinitialiser la base (voir ci-dessous) pour être prise
+en compte.
 
 ### Vérifier que les données sont bien chargées
 
@@ -68,8 +129,8 @@ SELECT * FROM role;
 SELECT * FROM zone;
 SELECT * FROM badge;
 SELECT * FROM user;
-SELECT * FROM zone_access;
-SELECT * FROM habitation;
+SELECT * FROM access_zone;
+SELECT * FROM location;
 ```
 
 Vérifier les droits d'accès par utilisateur (jointure complète) :
@@ -80,20 +141,33 @@ SELECT
 FROM user u
 JOIN badge b ON u.badge_id = b.id
 JOIN role r ON b.role_id = r.id
-JOIN zone_access za ON za.role_id = r.id
+JOIN access_zone za ON za.role_id = r.id
 JOIN zone z ON za.zone_id = z.id
 ORDER BY u.surname, z.name;
 ```
 
 ### Réinitialiser la base en développement
 
+Cette procédure supprime les volumes Docker, donc la base MySQL, les logs
+Loki et les données Grafana. Elle est adaptée à une nouvelle initialisation ou
+à un environnement de développement uniquement.
+
 ```bash
 docker compose --env-file .env -f docker-compose.yml down -v
 docker compose --env-file .env -f docker-compose.yml up -d --build
 ```
 
-Le script SQL d'initialisation est exécuté uniquement lorsque le volume MySQL
-est créé pour la première fois.
+Après cette réinitialisation, attendre que MySQL soit `healthy`, puis relancer
+le générateur de logs si nécessaire :
+
+```bash
+docker compose ps
+python3 jeux_de_donnees/generate_test_logs.py
+```
+
+Les scripts SQL d'initialisation sont exécutés uniquement lorsque le volume
+MySQL est créé pour la première fois. Un simple `docker compose up -d` conserve
+les données existantes et ne rejoue pas les scripts SQL.
 
 ## Lancement Python local
 

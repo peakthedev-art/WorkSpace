@@ -1,0 +1,70 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "title": "Logs API",
+      "type": "logs",
+      "targets": [{"expr": "{service=\"api_python\"}", "queryType": "range", "refId": "A"}],
+      "options": {"deduplication": true, "enableLogDetails": true, "prettifyLogMessage": true, "showCommonLabels": false, "showLabels": true, "sortOrder": "Descending", "wrapLines": false}
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "title": "Decisions d'acces",
+      "type": "logs",
+      "targets": [{"expr": "{event=\"access_decision\"} | json | details_zone=~\".+\" | line_format \"{{.details_time}} | {{.event}} | {{.details_badge_id}} | {{.details_zone}} | accepted={{.details_authorized}}\"", "queryType": "range", "refId": "A"}],
+      "options": {"deduplication": true, "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": false, "sortOrder": "Descending", "wrapLines": false}
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 8},
+      "id": 3,
+      "title": "Acces refuses",
+      "type": "stat",
+      "targets": [{"expr": "sum(count_over_time({event=\"access_decision\"} | json | details_authorized=\"false\" [$__range]))", "queryType": "instant", "refId": "A"}]
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 8, "x": 8, "y": 8},
+      "id": 4,
+      "title": "Acces autorises",
+      "type": "stat",
+      "targets": [{"expr": "sum(count_over_time({event=\"access_decision\"} | json | details_authorized=\"true\" [$__range]))", "queryType": "instant", "refId": "A"}]
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 8},
+      "id": 5,
+      "title": "Demandes d'acces dans le temps",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "sum(count_over_time({event=\"access_decision\"} | json | details_zone=~\".+\" | details_authorized=\"true\" [$__interval]))", "legendFormat": "Acces autorises", "queryType": "range", "refId": "A"},
+        {"expr": "sum(count_over_time({event=\"access_decision\"} | json | details_zone=~\".+\" | details_authorized=\"false\" [$__interval]))", "legendFormat": "Acces refuses", "queryType": "range", "refId": "B"}
+      ],
+      "fieldConfig": {
+        "defaults": {"unit": "short", "custom": {"drawStyle": "bars", "fillOpacity": 80, "lineWidth": 0, "showPoints": "never", "stacking": {"mode": "none", "group": "A"}}},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Acces autorises"}, "properties": [{"id": "color", "value": {"fixedColor": "green", "mode": "fixed"}}]},
+          {"matcher": {"id": "byName", "options": "Acces refuses"}, "properties": [{"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}]}
+        ]
+      }
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["rfid", "loki", "access-control"],
+  "templating": {"list": []},
+  "time": {"from": "now-24h", "to": "now"},
+  "timezone": "browser",
+  "title": "RFID - Controle des acces",
+  "uid": "rfid-access",
+  "version": 1
+}
