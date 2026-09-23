@@ -51,3 +51,25 @@ CREATE TABLE access_zone (
         ON UPDATE CASCADE
 );
 
+CREATE TABLE access_event (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    badge_id CHAR(36) NULL,
+    zone_id CHAR(36) NULL,
+    scanned_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    authorized BOOLEAN NOT NULL,
+    response_code SMALLINT UNSIGNED NOT NULL,
+    response_message VARCHAR(255) NOT NULL,
+    request_id CHAR(36) NULL,
+    source_ip VARCHAR(45) NULL,
+    FOREIGN KEY (badge_id) REFERENCES badge(id)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE,
+    FOREIGN KEY (zone_id) REFERENCES zone(id)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE,
+    INDEX idx_access_event_scanned_at (scanned_at),
+    INDEX idx_access_event_badge_scanned_at (badge_id, scanned_at),
+    INDEX idx_access_event_zone_scanned_at (zone_id, scanned_at),
+    INDEX idx_access_event_authorized_scanned_at (authorized, scanned_at)
+);
+

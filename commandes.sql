@@ -1,0 +1,75 @@
+CREATE TABLE role (
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE badge (
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    activation_date DATE NOT NULL DEFAULT (CURRENT_DATE),
+    ending_date DATE NOT NULL,
+    role_id CHAR(36) NOT NULL
+);
+
+CREATE TABLE user (
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    surname VARCHAR(255) NOT NULL,
+    birthdate DATE NOT NULL,
+    sex VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    badge_id CHAR(36) NOT NULL
+);
+
+CREATE TABLE zone (
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE location (
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    owner_id CHAR(36) NOT NULL
+);
+
+CREATE TABLE access_zone (
+    role_id CHAR(36) NOT NULL,
+    zone_id CHAR(36) NOT NULL
+);
+
+-- =========================
+-- CLÉS ÉTRANGÈRES
+-- =========================
+
+ALTER TABLE badge
+ADD CONSTRAINT fk_badge_role
+FOREIGN KEY (role_id)
+REFERENCES role(id)
+ON DELETE RESTRICT
+ON UPDATE CASCADE;
+
+ALTER TABLE user
+ADD CONSTRAINT fk_user_badge
+FOREIGN KEY (badge_id)
+REFERENCES badge(id)
+ON DELETE RESTRICT
+ON UPDATE CASCADE;
+
+ALTER TABLE location
+ADD CONSTRAINT fk_location_user
+FOREIGN KEY (owner_id)
+REFERENCES user(id)
+ON DELETE RESTRICT
+ON UPDATE CASCADE;
+
+ALTER TABLE access_zone
+ADD CONSTRAINT fk_access_zone_role
+FOREIGN KEY (role_id)
+REFERENCES role(id)
+ON DELETE RESTRICT
+ON UPDATE CASCADE;
+
+ALTER TABLE access_zone
+ADD CONSTRAINT fk_access_zone_zone
+FOREIGN KEY (zone_id)
+REFERENCES zone(id)
+ON DELETE RESTRICT
+ON UPDATE CASCADE;
