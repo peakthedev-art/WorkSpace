@@ -112,3 +112,20 @@ variables `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` et `DB_NAME` :
 source .venv/bin/activate
 uvicorn app.main:app --reload
 ```
+
+Nom d'hôte Raspberry : pi
+user : admin
+mdp : root
+
+Commandes Rispi :
+
+ping pi.local
+ssh admin@pi.local
+
+Dans terminal sur admin :
+
+Se connecter au venv :
+source hardware/.venv/bin/activate
+
+Lancer prog :
+python hardware/test_rfid.py
