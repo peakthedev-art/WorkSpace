@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.orm import Session
@@ -22,13 +22,18 @@ def check_access(
         description="ID numérique du badge RFID sur 12 chiffres",
     ),
     authorized_roles: List[str] = Query(
-        ..., description="IDs des rôles autorisés dans la zone demandée"
+        ...,
+        description="IDs des rôles autorisés dans la zone demandée",
     ),
-    zone: str | None = Query(None, description="Nom de la zone demandée"),
+    zone: Optional[str] = Query(
+        None,
+        description="Nom de la zone demandée",
+    ),
     db: Session = Depends(get_db),
 ):
     """Retourne true si le badge est valide et son rôle est autorisé."""
     allowed = is_access_allowed(db, badge_id, authorized_roles)
+
     logger.info(
         "Access decision recorded",
         extra={
@@ -41,6 +46,7 @@ def check_access(
             },
         },
     )
+
     return allowed
 
 
@@ -56,6 +62,7 @@ def get_badge(
 ):
     """Retourne les informations complètes d'un badge."""
     badge = find_badge(db, badge_id)
+
     if badge is None:
         raise HTTPException(status_code=404, detail="Badge introuvable")
 
@@ -84,6 +91,7 @@ def get_badge(
 def get_role(role_id: str, db: Session = Depends(get_db)):
     """Retourne un rôle et les zones accessibles avec ce rôle."""
     role = find_role(db, role_id)
+
     if role is None:
         raise HTTPException(status_code=404, detail="Rôle introuvable")
 
