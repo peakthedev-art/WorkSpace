@@ -96,6 +96,11 @@ docker compose --env-file .env -f docker-compose.yml
 
 ## Base de données
 
+Les identifiants RFID des badges sont des entiers positifs de exactement
+12 chiffres (`100000000000` à `999999999999`). Ce format est contrôlé par la
+base, l'ORM et les paramètres de l'API; les identifiants des rôles, utilisateurs
+et zones restent des UUID textuels.
+
 Le schéma et le jeu de données de démonstration sont chargés automatiquement
 par MySQL au premier démarrage, via deux scripts montés dans
 `/docker-entrypoint-initdb.d/` :

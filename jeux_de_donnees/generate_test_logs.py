@@ -31,7 +31,7 @@ def main() -> None:
             "message": "Access decision recorded",
             "event": "access_decision",
             "details": {
-                "badge_id": f"test-badge-{index + 1:02d}",
+                "badge_id": 100000000001 + index,
                 "zone": zones[index % len(zones)],
                 "time": event_time.strftime("%H:%M:%S"),
                 "authorized": authorized,

@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timezone
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.orm import Session
 
 from app.access_service import find_badge, find_role, is_access_allowed
@@ -15,7 +15,12 @@ logger = logging.getLogger(__name__)
 
 @router.get("/access/check", response_model=bool)
 def check_access(
-    badge_id: str = Query(..., description="ID du badge lu par le hardware"),
+    badge_id: int = Query(
+        ...,
+        ge=100000000000,
+        le=999999999999,
+        description="ID numérique du badge RFID sur 12 chiffres",
+    ),
     authorized_roles: List[str] = Query(
         ..., description="IDs des rôles autorisés dans la zone demandée"
     ),
@@ -40,7 +45,15 @@ def check_access(
 
 
 @router.get("/badge/{badge_id}", response_model=BadgeResponse)
-def get_badge(badge_id: str, db: Session = Depends(get_db)):
+def get_badge(
+    badge_id: int = Path(
+        ...,
+        ge=100000000000,
+        le=999999999999,
+        description="ID numérique du badge RFID sur 12 chiffres",
+    ),
+    db: Session = Depends(get_db),
+):
     """Retourne les informations complètes d'un badge."""
     badge = find_badge(db, badge_id)
     if badge is None:

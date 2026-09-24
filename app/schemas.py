@@ -10,11 +10,11 @@ class UserResponse(BaseModel):
     birthdate: date
     sex: str
     email: str
-    badge_id: str
+    badge_id: int
 
 
 class BadgeResponse(BaseModel):
-    id: str
+    id: int
     activation_date: date
     ending_date: date
     role_id: str

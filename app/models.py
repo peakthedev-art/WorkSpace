@@ -1,7 +1,7 @@
 from datetime import date
 from typing import List
 
-from sqlalchemy import Date, ForeignKey, String, text
+from sqlalchemy import BigInteger, CheckConstraint, Date, ForeignKey, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -19,8 +19,14 @@ class Role(Base):
 
 class Badge(Base):
     __tablename__ = "badge"
+    __table_args__ = (
+        CheckConstraint(
+            "id BETWEEN 100000000000 AND 999999999999",
+            name="ck_badge_id_12_digits",
+        ),
+    )
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     activation_date: Mapped[date] = mapped_column(
         Date,
         nullable=False,
@@ -45,7 +51,7 @@ class User(Base):
     birthdate: Mapped[date] = mapped_column(Date, nullable=False)
     sex: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(255), nullable=False)
-    badge_id: Mapped[str] = mapped_column(
+    badge_id: Mapped[int] = mapped_column(
         ForeignKey("badge.id", ondelete="RESTRICT", onupdate="CASCADE"),
         nullable=False,
     )
