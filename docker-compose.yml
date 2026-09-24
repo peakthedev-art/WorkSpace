@@ -9,13 +9,17 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "${MYSQL_PORT}:3306"
+      - "3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./jeux_de_donnees/commandes.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./jeux_de_donnees/test_donnees.sql:/docker-entrypoint-initdb.d/02-donnees.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u$${MYSQL_USER} -p$${MYSQL_PASSWORD}"]
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -u$${MYSQL_USER} -p$${MYSQL_PASSWORD}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -27,10 +31,15 @@ services:
     container_name: workspace-api
     restart: unless-stopped
     environment:
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
       DB_USER: ${MYSQL_USER}
       DB_PASSWORD: ${MYSQL_PASSWORD}
       DB_HOST: mysql
-      DB_PORT: 3306
+      DB_PORT: "3306"
       DB_NAME: ${MYSQL_DATABASE}
     ports:
       - "${API_PORT}:8000"
@@ -71,7 +80,11 @@ services:
       - grafana_data:/var/lib/grafana
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q --spider http://localhost:3000/api/health",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10

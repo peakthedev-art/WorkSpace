@@ -1,13 +1,14 @@
 import logging
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.orm import Session
 
 from app.access_service import find_badge, find_role, is_access_allowed
 from app.database import get_db
-from app.schemas import BadgeResponse, RoleResponse, UserResponse, ZoneResponse
+from app.schemas import BadgeResponse, RoleResponse
+
 
 router = APIRouter(tags=["Access control"])
 logger = logging.getLogger(__name__)
@@ -23,13 +24,10 @@ def check_access(
     ),
     authorized_roles: List[int] = Query(
         ...,
-        ge=100000000000,
-        le=999999999999,
-        description="IDs numériques des rôles RFID autorisés dans la zone demandée",
+        description="IDs numériques des rôles autorisés",
     ),
     db: Session = Depends(get_db),
 ):
-    """Retourne true si le badge est valide et son rôle est autorisé."""
     allowed = is_access_allowed(db, badge_id, authorized_roles)
 
     logger.info(
@@ -38,7 +36,6 @@ def check_access(
             "event": "access_decision",
             "details": {
                 "badge_id": badge_id,
-                "zone": zone or "unknown",
                 "time": datetime.now(timezone.utc).strftime("%H:%M:%S"),
                 "authorized": allowed,
             },
@@ -58,7 +55,6 @@ def get_badge(
     ),
     db: Session = Depends(get_db),
 ):
-    """Retourne les informations complètes d'un badge."""
     badge = find_badge(db, badge_id)
 
     if badge is None:
@@ -69,19 +65,6 @@ def get_badge(
         activation_date=badge.activation_date,
         ending_date=badge.ending_date,
         role_id=badge.role_id,
-        role_name=badge.role.name,
-        users=[
-            UserResponse(
-                id=user.id,
-                name=user.name,
-                surname=user.surname,
-                birthdate=user.birthdate,
-                sex=user.sex,
-                email=user.email,
-                badge_id=user.badge_id,
-            )
-            for user in badge.users
-        ],
     )
 
 
@@ -91,11 +74,10 @@ def get_role(
         ...,
         ge=100000000000,
         le=999999999999,
-        description="ID numérique du rôle RFID sur 12 chiffres",
+        description="ID numérique du rôle sur 12 chiffres",
     ),
     db: Session = Depends(get_db),
 ):
-    """Retourne un rôle et les zones accessibles avec ce rôle."""
     role = find_role(db, role_id)
 
     if role is None:
@@ -104,8 +86,4 @@ def get_role(
     return RoleResponse(
         id=role.id,
         name=role.name,
-        zones=[
-            ZoneResponse(id=access.zone.id, name=access.zone.name)
-            for access in role.zone_accesses
-        ],
     )

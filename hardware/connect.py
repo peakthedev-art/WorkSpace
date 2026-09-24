@@ -1,40 +1,62 @@
-from mfrc522 import MFRC522
-import RPi.GPIO as GPIO
+import os
 import time
+from datetime import date
 
-from app import access_service
-from app.database import SessionLocal
+import requests
+import RPi.GPIO as GPIO
+from mfrc522 import MFRC522
 
+
+API_BASE_URL = os.getenv("ACCESS_API_URL", "http://127.0.0.1:8000").rstrip("/")
 KEY = [0xFF] * 6
 BLOCK = 4
+SCAN_TIMEOUT = 10
 
 
-def verifier_role_badge(badge_id: int) -> tuple[bool, str | None]:
-    """Renvoie (True/False selon le rôle, nom du rôle ou None)."""
-    db = SessionLocal()
-
+def verifier_role_badge(badge_id: int) -> bool:
+    """Vérifie le badge et son rôle via les routes de l'API."""
     try:
-        badge = access_service.finad_badge(db, badge_id)
+        response = requests.get(
+            f"{API_BASE_URL}/badge/{badge_id}",
+            timeout=5,
+        )
+        if response.status_code == 404:
+            print("Badge introuvable dans l'API.")
+            return False
+        response.raise_for_status()
+        badge = response.json()
 
-        if badge is None:
-            return False, None
+        aujourd_hui = date.today()
+        activation = date.fromisoformat(badge["activation_date"])
+        fin = date.fromisoformat(badge["ending_date"])
 
-        role = access_service.find_role(db, badge.role_id)
+        if not activation <= aujourd_hui <= fin:
+            print("Badge hors période de validité.")
+            return False
 
-        if role is None:
-            return False, None
+        response = requests.get(
+            f"{API_BASE_URL}/role/{badge['role_id']}",
+            timeout=5,
+        )
+        if response.status_code == 404:
+            print("Rôle introuvable dans l'API.")
+            return False
+        response.raise_for_status()
+        role = response.json()
 
-        role_name = role.name
-        return role_name == "administrateur", role_name
-    finally:
-        db.close()
+        return role["name"].casefold() == "administrateur"
+
+    except requests.RequestException as exc:
+        print(f"Erreur lors de l'appel à l'API ({API_BASE_URL}) : {exc}")
+        return False
+    except (KeyError, TypeError, ValueError) as exc:
+        print(f"Réponse de l'API invalide : {exc}")
+        return False
 
 
-reader = MFRC522()
-
-try:
-    print("Approche un badge...")
-    deadline = time.time() + 10
+def lire_identifiant(reader: MFRC522) -> int | None:
+    """Lit l'identifiant numérique de 12 chiffres stocké dans le bloc 4."""
+    deadline = time.time() + SCAN_TIMEOUT
 
     while time.time() < deadline:
         status, _ = reader.MFRC522_Request(reader.PICC_REQIDL)
@@ -44,42 +66,75 @@ try:
 
             if status == reader.MI_OK:
                 if reader.MFRC522_SelectTag(uid) == 0:
-                    print((False, None))
-                    break
+                    print("Impossible de sélectionner le badge.")
+                    return None
 
                 status = reader.MFRC522_Auth(
                     reader.PICC_AUTHENT1A,
                     BLOCK,
                     KEY,
-                    uid
+                    uid,
                 )
 
                 if status != reader.MI_OK:
-                    print((False, None))
-                    break
+                    print("Authentification du badge échouée.")
+                    return None
 
-                data = reader.MFRC522_Read(BLOCK)
-                reader.MFRC522_StopCrypto1()
+                try:
+                    data = reader.MFRC522_Read(BLOCK)
+                finally:
+                    reader.MFRC522_StopCrypto1()
 
                 if data is None:
-                    print((False, None))
-                    break
+                    print("Lecture du bloc du badge échouée.")
+                    return None
 
                 identifiant = bytes(data[:12]).decode(
-                    "ascii", errors="ignore"
-                ).strip("\x00")
+                    "ascii",
+                    errors="ignore",
+                ).strip("\x00 ").strip()
 
-                if not identifiant.isdigit():
-                    print((False, None))
-                    break
+                if len(identifiant) != 12 or not identifiant.isdigit():
+                    print(f"Identifiant invalide dans le badge : {identifiant!r}")
+                    return None
 
-                resultat = verifier_role_badge(int(identifiant))
-                print(resultat)
-                break
+                return int(identifiant)
 
         time.sleep(0.1)
-    else:
-        print((False, None))
 
-finally:
-    GPIO.cleanup()
+    print("Aucun badge détecté en 10 secondes.")
+    return None
+
+
+def main() -> None:
+    print("Démarrage du lecteur RFID...")
+    reader = None
+
+    try:
+        reader = MFRC522()
+        print("Approchez un badge...")
+
+        badge_id = lire_identifiant(reader)
+        if badge_id is None:
+            print(False)
+            return
+
+        print(f"Badge détecté : {badge_id}")
+        print(verifier_role_badge(badge_id))
+
+    except Exception as exc:
+        print(f"Erreur du lecteur RFID/SPI : {exc}")
+        print(False)
+
+    finally:
+        if reader is not None:
+            try:
+                reader.Close_MFRC522()
+            except Exception:
+                GPIO.cleanup()
+        else:
+            GPIO.cleanup()
+
+
+if __name__ == "__main__":
+    main()
