@@ -91,7 +91,7 @@ Les journaux Docker sont envoyés automatiquement à Loki par Promtail.
 Pour arrêter les services :
 
 ```bash
-docker compose --env-file .env -f docker-compose.yml
+docker compose --env-file .env down
 ```
 
 ## Base de données
@@ -119,6 +119,52 @@ Les fichiers sont regroupés dans le dossier `jeux_de_donnees/` :
 `mysql_data` est créé. Toute modification des fichiers SQL après un premier
 lancement nécessite de réinitialiser la base (voir ci-dessous) pour être prise
 en compte.
+
+### Importer un autre jeu de données
+
+Pour tester un jeu de données personnel sans modifier les fichiers fournis par
+le projet, créer un fichier SQL dans `jeux_de_donnees/`, par exemple
+`jeux_de_donnees/mon_jeu.sql`. Le fichier doit contenir les `INSERT` dans le
+bon ordre : `role`, `zone`, `badge`, `user`, `access_zone`, puis `location`.
+Les identifiants doivent respecter les contraintes du schéma et ne pas déjà
+exister dans la base.
+
+Démarrer MySQL, puis importer le fichier dans la base du conteneur :
+
+```bash
+docker compose --env-file .env up -d mysql
+docker compose --env-file .env exec -T mysql \
+    sh -c 'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"' \
+    < jeux_de_donnees/mon_jeu.sql
+```
+
+Cette commande utilise les identifiants définis dans `.env` et fonctionne quel
+que soit le nom de la base choisi par le collègue. Elle n'efface pas les
+données déjà présentes : pour un import reproductible, utiliser de nouveaux
+identifiants ou réinitialiser la base avant l'import.
+
+Vérifier ensuite l'import avec une requête de comptage :
+
+```bash
+docker compose --env-file .env exec -T mysql \
+    sh -c 'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" \
+    -e "SELECT COUNT(*) AS roles FROM role; SELECT COUNT(*) AS zones FROM zone; \
+    SELECT COUNT(*) AS badges FROM badge; SELECT COUNT(*) AS utilisateurs FROM user;"'
+```
+
+Pour remplacer complètement le jeu de données de démonstration, modifier
+`jeux_de_donnees/test_donnees.sql`, puis supprimer et recréer le volume MySQL
+avant de relancer les services :
+
+```bash
+docker compose --env-file .env down -v
+docker compose --env-file .env up -d --build
+docker compose ps
+```
+
+Attendre que `workspace-mysql` soit `healthy` avant d'utiliser l'API. La
+commande `down -v` supprime les données locales de MySQL, Loki et Grafana ; ne
+pas l'utiliser sur un environnement contenant des données à conserver.
 
 ### Vérifier que les données sont bien chargées
 
