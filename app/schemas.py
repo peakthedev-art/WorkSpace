@@ -17,7 +17,7 @@ class BadgeResponse(BaseModel):
     id: int
     activation_date: date
     ending_date: date
-    role_id: str
+    role_id: int
 
 
 class ZoneResponse(BaseModel):
@@ -26,5 +26,5 @@ class ZoneResponse(BaseModel):
 
 
 class RoleResponse(BaseModel):
-    id: str
+    id: int
     name: str

@@ -1,13 +1,14 @@
 CREATE TABLE role (
-    id CHAR(36) NOT NULL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL
+    id BIGINT NOT NULL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    CONSTRAINT ck_role_id_12_digits CHECK (id BETWEEN 100000000000 AND 999999999999)
 );
 
 CREATE TABLE badge (
     id BIGINT NOT NULL PRIMARY KEY,
     activation_date DATE NOT NULL DEFAULT (CURRENT_DATE),
     ending_date DATE NOT NULL,
-    role_id CHAR(36) NOT NULL,
+    role_id BIGINT NOT NULL,
     CONSTRAINT ck_badge_id_12_digits CHECK (id BETWEEN 100000000000 AND 999999999999)
 );
 
@@ -32,7 +33,7 @@ CREATE TABLE location (
 );
 
 CREATE TABLE access_zone (
-    role_id CHAR(36) NOT NULL,
+    role_id BIGINT NOT NULL,
     zone_id CHAR(36) NOT NULL
 );
 
