@@ -1,39 +1,57 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-load_dotenv()
 
-# Docker fournit les variables DB_* à l'API ; les variables MYSQL_* restent
-# acceptées pour le lancement local avec le fichier .env.
-DB_USER = os.getenv("DB_USER") or os.getenv("MYSQL_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD") or os.getenv("MYSQL_PASSWORD")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(PROJECT_ROOT / ".env", override=False)
+
+DB_USER = os.getenv("MYSQL_USER")
+DB_PASSWORD = os.getenv("MYSQL_PASSWORD")
+DB_NAME = os.getenv("MYSQL_DATABASE")
 DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "3306")
-DB_NAME = os.getenv("DB_NAME") or os.getenv("MYSQL_DATABASE")
+DB_PORT = int(os.getenv("DB_PORT", "3306"))
 
-if not all([DB_USER, DB_PASSWORD, DB_NAME]):
+required_values = {
+    "MYSQL_USER": DB_USER,
+    "MYSQL_PASSWORD": DB_PASSWORD,
+    "MYSQL_DATABASE": DB_NAME,
+}
+
+missing_values = [
+    name for name, value in required_values.items()
+    if not value
+]
+
+if missing_values:
     raise RuntimeError(
-        "Variables manquantes : DB_USER, DB_PASSWORD, DB_NAME"
+        "Variables manquantes dans .env : " + ", ".join(missing_values)
     )
 
-DATABASE_URL = (
-    f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}"
-    f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+DATABASE_URL = URL.create(
+    drivername="mysql+pymysql",
+    username=DB_USER,
+    password=DB_PASSWORD,
+    host=DB_HOST,
+    port=DB_PORT,
+    database=DB_NAME,
 )
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 SessionLocal = sessionmaker(
+    bind=engine,
     autocommit=False,
     autoflush=False,
-    bind=engine
 )
+
 
 class Base(DeclarativeBase):
     pass
+
 
 def get_db():
     db = SessionLocal()
