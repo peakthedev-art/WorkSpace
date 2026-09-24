@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from app.models import Badge, Role, ZoneAccess
 
 
-def find_badge(db: Session, badge_id: str) -> Optional[Badge]:
+def find_badge(db: Session, badge_id: int) -> Optional[Badge]:
     """Retourne un badge avec son rôle et son ou ses utilisateurs."""
     statement = (
         select(Badge)
@@ -17,7 +17,7 @@ def find_badge(db: Session, badge_id: str) -> Optional[Badge]:
     return db.execute(statement).scalar_one_or_none()
 
 
-def is_access_allowed(db: Session, badge_id: str, authorized_roles: List[str]) -> bool:
+def is_access_allowed(db: Session, badge_id: int, authorized_roles: List[str]) -> bool:
     """Vérifie l'existence, la période de validité et le rôle du badge."""
     badge = find_badge(db, badge_id)
 
@@ -25,7 +25,7 @@ def is_access_allowed(db: Session, badge_id: str, authorized_roles: List[str]) -
         return False
 
     today = date.today()
-    if not badge.date_activation <= today <= badge.date_fin:
+    if not badge.activation_date <= today <= badge.ending_date:
         return False
 
     # La liste contient les IDs des rôles qui sont autorisés pour la zone.

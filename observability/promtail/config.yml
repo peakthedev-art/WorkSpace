@@ -21,3 +21,11 @@ scrape_configs:
         target_label: service
     pipeline_stages:
       - docker: {}
+      - json:
+          expressions:
+            level: level
+            event: event
+            logger: logger
+      - labels:
+          level:
+          event:

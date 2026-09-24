@@ -4,10 +4,11 @@ CREATE TABLE role (
 );
 
 CREATE TABLE badge (
-    id CHAR(36) NOT NULL PRIMARY KEY,
+    id BIGINT NOT NULL PRIMARY KEY,
     activation_date DATE NOT NULL DEFAULT (CURRENT_DATE),
     ending_date DATE NOT NULL,
-    role_id CHAR(36) NOT NULL
+    role_id CHAR(36) NOT NULL,
+    CONSTRAINT ck_badge_id_12_digits CHECK (id BETWEEN 100000000000 AND 999999999999)
 );
 
 CREATE TABLE user (
@@ -17,7 +18,7 @@ CREATE TABLE user (
     birthdate DATE NOT NULL,
     sex VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
-    badge_id CHAR(36) NOT NULL
+    badge_id BIGINT NOT NULL
 );
 
 CREATE TABLE zone (

@@ -12,8 +12,8 @@ services:
       - "${MYSQL_PORT}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./commandes.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-      - ./test_donnees.sql:/docker-entrypoint-initdb.d/02-donnees.sql:ro
+      - ./jeux_de_donnees/commandes.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./jeux_de_donnees/test_donnees.sql:/docker-entrypoint-initdb.d/02-donnees.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u$${MYSQL_USER} -p$${MYSQL_PASSWORD}"]
       interval: 5s
@@ -38,45 +38,51 @@ services:
       mysql:
         condition: service_healthy
 
-  # loki:
-  #   image: grafana/loki:3.5.0
-  #   container_name: workspace-loki
-  #   ports:
-  #     - "3100:3100"
-  #   command: -config.file=/etc/loki/loki-config.yml
-  #   volumes:
-  #     - ./observability/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
-  #     - loki_data:/loki
+  loki:
+    image: grafana/loki:3.5.0
+    container_name: workspace-loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./observability/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
 
-  # promtail:
-  #   image: grafana/promtail:3.5.0
-  #   container_name: workspace-promtail
-  #   command: -config.file=/etc/promtail/config.yml
-  #   volumes:
-  #     - ./observability/promtail/config.yml:/etc/promtail/config.yml:ro
-  #     - /var/run/docker.sock:/var/run/docker.sock:ro
-  #     - /var/lib/docker/containers:/var/lib/docker/containers:ro
-  #   depends_on:
-  #     - loki
+  promtail:
+    image: grafana/promtail:3.5.0
+    container_name: workspace-promtail
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./observability/promtail/config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on:
+      - loki
 
-  # grafana:
-  #   image: grafana/grafana:11.5.2
-  #   container_name: workspace-grafana
-  #   ports:
-  #     - "${GRAFANA_PORT}:3000"
-  #   environment:
-  #     GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
-  #     GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
-  #   volumes:
-  #     - grafana_data:/var/lib/grafana
-  #     - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
-  #   depends_on:
-  #     - loki
+  grafana:
+    image: grafana/grafana:11.5.2
+    container_name: workspace-grafana
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      loki:
+        condition: service_started
 
 volumes:
   mysql_data:
     driver: local
-  # loki_data:
-  #   driver: local
-  # grafana_data:
-  #   driver: local
+  loki_data:
+    driver: local
+  grafana_data:
+    driver: local
