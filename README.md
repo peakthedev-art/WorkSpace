@@ -3,7 +3,7 @@
 Système de **contrôle d'accès par badges RFID** : gestion des badges, des rôles, des zones et des droits d'accès, avec une base MySQL, une API Python (FastAPI) et une stack d'observabilité (Loki / Promtail / Grafana).
 
 > Projet réalisé dans le cadre du Workshop National EPSI B3 — **Horizon 2080** (Session septembre 2026).
-> Groupe : `G<n>` · Équipe : _à compléter_
+> Groupe : `G5 · Équipe : Enzo, Tristan, Mathias
 
 ---
 
