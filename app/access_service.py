@@ -17,7 +17,7 @@ def find_badge(db: Session, badge_id: int) -> Optional[Badge]:
     return db.execute(statement).scalar_one_or_none()
 
 
-def is_access_allowed(db: Session, badge_id: int, authorized_roles: List[str]) -> bool:
+def is_access_allowed(db: Session, badge_id: int, authorized_roles: List[int]) -> bool:
     """Vérifie l'existence, la période de validité et le rôle du badge."""
     badge = find_badge(db, badge_id)
 
@@ -32,7 +32,7 @@ def is_access_allowed(db: Session, badge_id: int, authorized_roles: List[str]) -
     return badge.role_id in authorized_roles
 
 
-def find_role(db: Session, role_id: str) -> Optional[Role]:
+def find_role(db: Session, role_id: int) -> Optional[Role]:
     """Retourne un rôle et les zones auxquelles il donne accès."""
     statement = (
         select(Role)

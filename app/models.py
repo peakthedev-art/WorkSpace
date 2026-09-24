@@ -9,8 +9,14 @@ from app.database import Base
 
 class Role(Base):
     __tablename__ = "role"
+    __table_args__ = (
+        CheckConstraint(
+            "id BETWEEN 100000000000 AND 999999999999",
+            name="ck_role_id_12_digits",
+        ),
+    )
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
 
     badges: Mapped[List["Badge"]] = relationship(back_populates="role")
@@ -33,7 +39,7 @@ class Badge(Base):
         server_default=text("CURRENT_DATE"),
     )
     ending_date: Mapped[date] = mapped_column(Date, nullable=False)
-    role_id: Mapped[str] = mapped_column(
+    role_id: Mapped[int] = mapped_column(
         ForeignKey("role.id", ondelete="RESTRICT", onupdate="CASCADE"),
         nullable=False,
     )
@@ -84,7 +90,7 @@ class Zone(Base):
 class ZoneAccess(Base):
     __tablename__ = "zone_access"
 
-    role_id: Mapped[str] = mapped_column(
+    role_id: Mapped[int] = mapped_column(
         ForeignKey("role.id", ondelete="RESTRICT", onupdate="CASCADE"),
         primary_key=True,
     )

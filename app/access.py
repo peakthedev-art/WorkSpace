@@ -21,8 +21,11 @@ def check_access(
         le=999999999999,
         description="ID numérique du badge RFID sur 12 chiffres",
     ),
-    authorized_roles: List[str] = Query(
-        ..., description="IDs des rôles autorisés dans la zone demandée"
+    authorized_roles: List[int] = Query(
+        ...,
+        ge=100000000000,
+        le=999999999999,
+        description="IDs numériques des rôles RFID autorisés dans la zone demandée",
     ),
     zone: str | None = Query(None, description="Nom de la zone demandée"),
     db: Session = Depends(get_db),
@@ -81,7 +84,15 @@ def get_badge(
 
 
 @router.get("/role/{role_id}", response_model=RoleResponse)
-def get_role(role_id: str, db: Session = Depends(get_db)):
+def get_role(
+    role_id: int = Path(
+        ...,
+        ge=100000000000,
+        le=999999999999,
+        description="ID numérique du rôle RFID sur 12 chiffres",
+    ),
+    db: Session = Depends(get_db),
+):
     """Retourne un rôle et les zones accessibles avec ce rôle."""
     role = find_role(db, role_id)
     if role is None:
